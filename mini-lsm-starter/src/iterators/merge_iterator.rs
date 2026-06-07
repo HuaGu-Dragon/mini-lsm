@@ -57,14 +57,14 @@ pub struct MergeIterator<I: StorageIterator> {
 
 impl<I: StorageIterator> MergeIterator<I> {
     pub fn create(iters: Vec<Box<I>>) -> Self {
-        let mut heap = BinaryHeap::with_capacity(iters.len());
-
         if iters.is_empty() || iters.iter().all(|x| !x.is_valid()) {
             return Self {
-                iters: heap,
+                iters: BinaryHeap::new(),
                 current: None,
             };
         }
+
+        let mut heap = BinaryHeap::with_capacity(iters.len());
 
         for (i, iter) in iters.into_iter().enumerate() {
             if iter.is_valid() {
