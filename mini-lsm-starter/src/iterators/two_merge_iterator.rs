@@ -12,9 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#![allow(unused_variables)] // TODO(you): remove this lint after implementing this mod
-#![allow(dead_code)] // TODO(you): remove this lint after implementing this mod
-
 use anyhow::Result;
 
 use super::StorageIterator;
@@ -33,7 +30,7 @@ impl<
 > TwoMergeIterator<A, B>
 {
     pub fn create(a: A, b: B) -> Result<Self> {
-        let mut iter = Self { a, b, first: false };
+        let mut iter = Self { a, b, first: true };
         iter.skip_b()?;
         iter.first = Self::choose_a(&iter.a, &iter.b);
 
@@ -52,10 +49,8 @@ impl<
     }
 
     pub fn skip_b(&mut self) -> Result<()> {
-        if self.a.is_valid() {
-            if self.b.is_valid() && self.b.key() == self.a.key() {
-                self.b.next()?;
-            }
+        if self.a.is_valid() && self.b.is_valid() && self.b.key() == self.a.key() {
+            self.b.next()?;
         }
 
         Ok(())
@@ -98,7 +93,7 @@ impl<
             self.a.next()?;
         } else {
             self.b.next()?;
-        };
+        }
         self.skip_b()?;
         self.first = Self::choose_a(&self.a, &self.b);
 
