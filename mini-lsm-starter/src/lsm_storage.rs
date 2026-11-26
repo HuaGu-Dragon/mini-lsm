@@ -351,6 +351,12 @@ impl LsmStorageInner {
                             continue;
                         }
 
+                        if let Some(ref bloom) = table.bloom
+                            && !bloom.may_contain(farmhash::fingerprint32(key.raw_ref()))
+                        {
+                            continue;
+                        }
+
                         iters.push(Box::new(SsTableIterator::create_and_seek_to_key(
                             table, key,
                         )?));

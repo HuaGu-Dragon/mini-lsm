@@ -62,10 +62,17 @@ impl BlockBuilder {
         }
 
         self.offsets.push(self.data.len() as u16);
-        self.data.put_u16(key.len() as u16);
-        self.data.put(key.raw_ref());
+
+        let overlap = common_prefix_len(self.first_key.as_key_slice(), key);
+        let rest_len = key.len() - overlap;
+        self.data.put_u16(overlap as u16);
+        self.data.put_u16(rest_len as u16);
+        self.data.put(&key.raw_ref()[overlap..]);
         self.data.put_u16(value.len() as u16);
         self.data.put(value);
+        if self.first_key.is_empty() {
+            self.first_key = key.to_key_vec();
+        }
 
         true
     }
@@ -82,4 +89,13 @@ impl BlockBuilder {
             offsets: self.offsets,
         }
     }
+}
+
+fn common_prefix_len(first_key: KeySlice, key: KeySlice) -> usize {
+    first_key
+        .raw_ref()
+        .iter()
+        .zip(key.raw_ref())
+        .take_while(|(x, y)| *x == *y)
+        .count()
 }

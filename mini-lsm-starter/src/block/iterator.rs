@@ -12,9 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#![allow(unused_variables)] // TODO(you): remove this lint after implementing this mod
-#![allow(dead_code)] // TODO(you): remove this lint after implementing this mod
-
 use std::sync::Arc;
 
 use bytes::Buf;
@@ -39,12 +36,17 @@ pub struct BlockIterator {
 
 impl BlockIterator {
     fn new(block: Arc<Block>) -> Self {
+        let mut data = &block.data[..];
+        data.get_u16();
+        let len = data.get_u16();
+        let first_key = KeySlice::from_slice(&data[..len as usize]).to_key_vec();
+
         Self {
             block,
             key: KeyVec::new(),
             value_range: (0, 0),
             idx: 0,
-            first_key: KeyVec::new(),
+            first_key,
         }
     }
 
@@ -93,14 +95,16 @@ impl BlockIterator {
         let offset = offset as usize;
         let mut entry = &self.block.data[offset..];
 
-        let k_len = entry.get_u16() as usize;
-        let key = &entry[..k_len];
-        entry.advance(k_len);
+        let overlap = entry.get_u16() as usize;
+        let rest_len = entry.get_u16() as usize;
+
         self.key.clear();
-        self.key.append(key);
+        self.key.append(&self.first_key.raw_ref()[..overlap]);
+        self.key.append(&entry[..rest_len]);
+        entry.advance(rest_len);
 
         let v_len = entry.get_u16() as usize;
-        let v_start = offset + SIZEOF_U16 + k_len + SIZEOF_U16;
+        let v_start = offset + SIZEOF_U16 + SIZEOF_U16 + rest_len + SIZEOF_U16;
         let v_end = v_start + v_len;
         self.value_range = (v_start, v_end);
         entry.advance(v_len);
